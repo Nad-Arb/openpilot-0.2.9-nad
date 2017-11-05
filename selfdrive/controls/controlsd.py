@@ -61,7 +61,7 @@ def controlsd_thread(gctx, rate=100):  #rate in Hz
   LaC = LatControl()
 
   # controls enabled state
-  enabled = False
+  enabled = True
   last_enable_request = 0
 
   # learned angle offset
