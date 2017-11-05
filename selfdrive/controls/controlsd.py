@@ -30,9 +30,9 @@ else:
   from selfdrive.car.honda.interface import CarInterface
 
 V_CRUISE_MAX = 144
-V_CRUISE_MIN = 8
+V_CRUISE_MIN = 0
 V_CRUISE_DELTA = 8
-V_CRUISE_ENABLE_MIN = 40
+V_CRUISE_ENABLE_MIN = 0
 
 def controlsd_thread(gctx, rate=100):  #rate in Hz
   # *** log ***
