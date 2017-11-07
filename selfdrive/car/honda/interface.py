@@ -39,18 +39,17 @@ class BP:
 class CarInterface(object):
   def __init__(self, read_only=False):
     context = zmq.Context()
-    # self.logcan = messaging.sub_sock(context, service_list['can'].port)
+    self.logcan = messaging.sub_sock(context, service_list['can'].port)
 
     self.frame = 0
     self.can_invalid_count = 0
 
     # *** init the major players ***
-    self.CS = CarState(None)
-    self.CS.angle_steers = 0.0;
+    self.CS = CarState(self.logcan)
 
     # sending if read only is False
     if not read_only:
-      # self.sendcan = messaging.pub_sock(context, service_list['sendcan'].port)
+      self.sendcan = messaging.pub_sock(context, service_list['sendcan'].port)
       self.CC = CarController()
 
   def getVehicleParams(self):
@@ -58,17 +57,16 @@ class CarInterface(object):
 
   # returns a car.CarState
   def update(self):
-
-    # ******************* do recv *******************
+    # ******************* do can recv *******************
+    can_pub_main = []
+    canMonoTimes = []
     for a in messaging.drain_sock(self.logcan):
-      self.CS.angle_steers = a.carState.steeringAngle
+      canMonoTimes.append(a.logMonoTime)
+      can_pub_main.extend(can_capnp_to_can_list(a.can, [0,2]))
+    self.CS.update(can_pub_main)
 
     # create message
     ret = car.CarState.new_message()
-
-    ret.steeringAngle = self.CS.angle_steers
-
-    return ret.as_reader()
 
     # speeds
     ret.vEgo = self.CS.v_ego
@@ -151,6 +149,12 @@ class CarInterface(object):
     # TODO: I don't like the way capnp does enums
     # These strings aren't checked at compile time
     errors = []
+    if not self.CS.can_valid:
+      self.can_invalid_count += 1
+      if self.can_invalid_count >= 5:
+        errors.append('commIssue')
+    else:
+      self.can_invalid_count = 0
     if self.CS.steer_error:
       errors.append('steerUnavailable')
     elif self.CS.steer_not_allowed:
